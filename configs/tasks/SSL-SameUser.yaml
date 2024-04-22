@@ -1,0 +1,7 @@
+data:
+  class_path: src.tasks.ssl.PredictSameParticipant # note difference in file and class name - file name follows M&A 2022
+model:
+  init_args:
+    task_type: classification
+    neg_class_weight: 0.1
+    combine_rows: 2

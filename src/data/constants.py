@@ -27,19 +27,18 @@ PARQUET_DATASETS = [
     "processed_fitbit_minute_level_activity"
 ]
 
-DAILY_SLEEP_FEATURES = ['main_in_bed_minutes', 
+DAILY_SLEEP_FEATURES = ['main_in_bed_minutes',
                         'main_efficiency',
-                        'nap_count', 
-                        'total_asleep_minutes', 
+                        'nap_count',
+                        'total_asleep_minutes',
                         'total_in_bed_minutes'
-]
+                        ]
 
-DAILY_STEP_FEATURES =  ['activityCalories',
-                        'caloriesOut', 
-                        'caloriesBMR', 
-                        'marginalCalories', 
-                        'sedentaryMinutes', 
-                        'lightlyActiveMinutes', 
-                        'fairlyActiveMinutes', 
-                        'veryActiveMinutes']
-
+DAILY_STEP_FEATURES = ['activityCalories',
+                       'caloriesOut',
+                       'caloriesBMR',
+                       'marginalCalories',
+                       'sedentaryMinutes',
+                       'lightlyActiveMinutes',
+                       'fairlyActiveMinutes',
+                       'veryActiveMinutes']

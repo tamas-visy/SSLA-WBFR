@@ -12,6 +12,7 @@ Courtesy of
 https://github.com/TheMrGhostman/InceptionTime-Pytorch
 """
 
+
 def correct_sizes(sizes):
     corrected_sizes = [s if s % 2 != 0 else s - 1 for s in sizes]
     return corrected_sizes
@@ -22,7 +23,8 @@ def pass_through(X):
 
 
 class Inception(nn.Module):
-    def __init__(self, in_channels, n_filters, kernel_sizes=[9, 19, 39], bottleneck_channels=32, activation=nn.ReLU(), return_indices=False):
+    def __init__(self, in_channels, n_filters, kernel_sizes=[9, 19, 39], bottleneck_channels=32, activation=nn.ReLU(),
+                 return_indices=False):
         """
         : param in_channels				Number of input channels (input features)
         : param n_filters				Number of filters per convolution layer => out_channels = 4*n_filters
@@ -36,54 +38,54 @@ class Inception(nn.Module):
         : param return_indices			Indices are needed only if we want to create decoder with InceptionTranspose with MaxUnpool1d. 
         """
         super(Inception, self).__init__()
-        self.return_indices=return_indices
-        
+        self.return_indices = return_indices
+
         if in_channels > 1:
             self.bottleneck = nn.Conv1d(
-                                in_channels=in_channels, 
-                                out_channels=bottleneck_channels, 
-                                kernel_size=1, 
-                                stride=1, 
-                                bias=False
-                                )
+                in_channels=in_channels,
+                out_channels=bottleneck_channels,
+                kernel_size=1,
+                stride=1,
+                bias=False
+            )
         else:
             self.bottleneck = pass_through
             bottleneck_channels = 1
 
         self.conv_from_bottleneck_1 = nn.Conv1d(
-                                        in_channels=bottleneck_channels, 
-                                        out_channels=n_filters, 
-                                        kernel_size=kernel_sizes[0], 
-                                        stride=1, 
-                                        padding=kernel_sizes[0]//2, 
-                                        bias=False
-                                        )
+            in_channels=bottleneck_channels,
+            out_channels=n_filters,
+            kernel_size=kernel_sizes[0],
+            stride=1,
+            padding=kernel_sizes[0] // 2,
+            bias=False
+        )
         self.conv_from_bottleneck_2 = nn.Conv1d(
-                                        in_channels=bottleneck_channels, 
-                                        out_channels=n_filters, 
-                                        kernel_size=kernel_sizes[1], 
-                                        stride=1, 
-                                        padding=kernel_sizes[1]//2, 
-                                        bias=False
-                                        )
+            in_channels=bottleneck_channels,
+            out_channels=n_filters,
+            kernel_size=kernel_sizes[1],
+            stride=1,
+            padding=kernel_sizes[1] // 2,
+            bias=False
+        )
         self.conv_from_bottleneck_3 = nn.Conv1d(
-                                        in_channels=bottleneck_channels, 
-                                        out_channels=n_filters, 
-                                        kernel_size=kernel_sizes[2], 
-                                        stride=1, 
-                                        padding=kernel_sizes[2]//2, 
-                                        bias=False
-                                        )
+            in_channels=bottleneck_channels,
+            out_channels=n_filters,
+            kernel_size=kernel_sizes[2],
+            stride=1,
+            padding=kernel_sizes[2] // 2,
+            bias=False
+        )
         self.max_pool = nn.MaxPool1d(kernel_size=3, stride=1, padding=1, return_indices=return_indices)
         self.conv_from_maxpool = nn.Conv1d(
-                                    in_channels=in_channels, 
-                                    out_channels=n_filters, 
-                                    kernel_size=1, 
-                                    stride=1,
-                                    padding=0, 
-                                    bias=False
-                                    )
-        self.batch_norm = nn.BatchNorm1d(num_features=4*n_filters)
+            in_channels=in_channels,
+            out_channels=n_filters,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias=False
+        )
+        self.batch_norm = nn.BatchNorm1d(num_features=4 * n_filters)
         self.activation = activation
 
     def forward(self, X):
@@ -109,51 +111,51 @@ class Inception(nn.Module):
 
 class InceptionBlock(nn.Module):
     def __init__(self, in_channels: int,
-                        n_filters:int = 32, 
-                        kernel_sizes: List[int] = [9,19,39], 
-                        bottleneck_channels:int = 32, 
-                        use_residual:bool = True, 
-                        return_indices=False):
-        
+                 n_filters: int = 32,
+                 kernel_sizes: List[int] = [9, 19, 39],
+                 bottleneck_channels: int = 32,
+                 use_residual: bool = True,
+                 return_indices=False):
+
         super(InceptionBlock, self).__init__()
-        self.n_filters=n_filters
+        self.n_filters = n_filters
         self.use_residual = use_residual
         self.return_indices = return_indices
         self.activation = nn.ReLU()
         self.inception_1 = Inception(
-                            in_channels=in_channels,
-                            n_filters=n_filters,
-                            kernel_sizes=kernel_sizes,
-                            bottleneck_channels=bottleneck_channels,
-                            return_indices=return_indices
-                            )
+            in_channels=in_channels,
+            n_filters=n_filters,
+            kernel_sizes=kernel_sizes,
+            bottleneck_channels=bottleneck_channels,
+            return_indices=return_indices
+        )
         self.inception_2 = Inception(
-                            in_channels=4*n_filters,
-                            n_filters=n_filters,
-                            kernel_sizes=kernel_sizes,
-                            bottleneck_channels=bottleneck_channels,
-                            return_indices=return_indices
-                            )
+            in_channels=4 * n_filters,
+            n_filters=n_filters,
+            kernel_sizes=kernel_sizes,
+            bottleneck_channels=bottleneck_channels,
+            return_indices=return_indices
+        )
         self.inception_3 = Inception(
-                            in_channels=4*n_filters,
-                            n_filters=n_filters,
-                            kernel_sizes=kernel_sizes,
-                            bottleneck_channels=bottleneck_channels,
-                            return_indices=return_indices
-                            )	
+            in_channels=4 * n_filters,
+            n_filters=n_filters,
+            kernel_sizes=kernel_sizes,
+            bottleneck_channels=bottleneck_channels,
+            return_indices=return_indices
+        )
         if self.use_residual:
             self.residual = nn.Sequential(
-                                nn.Conv1d(
-                                    in_channels=in_channels, 
-                                    out_channels=4*n_filters, 
-                                    kernel_size=1,
-                                    stride=1,
-                                    padding=0
-                                    ),
-                                nn.BatchNorm1d(
-                                    num_features=4*n_filters
-                                    )
-                                )
+                nn.Conv1d(
+                    in_channels=in_channels,
+                    out_channels=4 * n_filters,
+                    kernel_size=1,
+                    stride=1,
+                    padding=0
+                ),
+                nn.BatchNorm1d(
+                    num_features=4 * n_filters
+                )
+            )
 
     def forward(self, X):
         if self.return_indices:
@@ -168,10 +170,9 @@ class InceptionBlock(nn.Module):
             Z = Z + self.residual(X)
             Z = self.activation(Z)
         if self.return_indices:
-            return Z,[i1, i2, i3]
+            return Z, [i1, i2, i3]
         else:
             return Z
-
 
 
 class InceptionTranspose(nn.Module):
@@ -193,45 +194,45 @@ class InceptionTranspose(nn.Module):
 
         self.activation = activation
         self.conv_to_bottleneck_1 = nn.ConvTranspose1d(
-                                        in_channels=in_channels, 
-                                        out_channels=bottleneck_channels, 
-                                        kernel_size=kernel_sizes[0], 
-                                        stride=1, 
-                                        padding=kernel_sizes[0]//2, 
-                                        bias=False
-                                        )
+            in_channels=in_channels,
+            out_channels=bottleneck_channels,
+            kernel_size=kernel_sizes[0],
+            stride=1,
+            padding=kernel_sizes[0] // 2,
+            bias=False
+        )
         self.conv_to_bottleneck_2 = nn.ConvTranspose1d(
-                                        in_channels=in_channels, 
-                                        out_channels=bottleneck_channels, 
-                                        kernel_size=kernel_sizes[1], 
-                                        stride=1, 
-                                        padding=kernel_sizes[1]//2, 
-                                        bias=False
-                                        )
+            in_channels=in_channels,
+            out_channels=bottleneck_channels,
+            kernel_size=kernel_sizes[1],
+            stride=1,
+            padding=kernel_sizes[1] // 2,
+            bias=False
+        )
         self.conv_to_bottleneck_3 = nn.ConvTranspose1d(
-                                        in_channels=in_channels, 
-                                        out_channels=bottleneck_channels, 
-                                        kernel_size=kernel_sizes[2], 
-                                        stride=1, 
-                                        padding=kernel_sizes[2]//2, 
-                                        bias=False
-                                        )
+            in_channels=in_channels,
+            out_channels=bottleneck_channels,
+            kernel_size=kernel_sizes[2],
+            stride=1,
+            padding=kernel_sizes[2] // 2,
+            bias=False
+        )
         self.conv_to_maxpool = nn.Conv1d(
-                                    in_channels=in_channels, 
-                                    out_channels=out_channels, 
-                                    kernel_size=1, 
-                                    stride=1,
-                                    padding=0, 
-                                    bias=False
-                                    )
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias=False
+        )
         self.max_unpool = nn.MaxUnpool1d(kernel_size=3, stride=1, padding=1)
         self.bottleneck = nn.Conv1d(
-                                in_channels=3*bottleneck_channels, 
-                                out_channels=out_channels, 
-                                kernel_size=1, 
-                                stride=1, 
-                                bias=False
-                                )
+            in_channels=3 * bottleneck_channels,
+            out_channels=out_channels,
+            kernel_size=1,
+            stride=1,
+            bias=False
+        )
         self.batch_norm = nn.BatchNorm1d(num_features=out_channels)
 
     def forward(self, X, indices):
@@ -244,52 +245,53 @@ class InceptionTranspose(nn.Module):
         MUP = self.max_unpool(Z4, indices)
         BN = self.bottleneck(Z)
         # another possibility insted of sum BN and MUP is adding 2nd bottleneck transposed convolution
-        
+
         return self.activation(self.batch_norm(BN + MUP))
 
 
 class InceptionTransposeBlock(nn.Module):
-    def __init__(self, in_channels, out_channels=32, kernel_sizes=[9,19,39], bottleneck_channels=32, use_residual=True, activation=nn.ReLU):
+    def __init__(self, in_channels, out_channels=32, kernel_sizes=[9, 19, 39], bottleneck_channels=32,
+                 use_residual=True, activation=nn.ReLU):
         super(InceptionTransposeBlock, self).__init__()
         self.use_residual = use_residual
         self.activation = activation()
         self.inception_1 = InceptionTranspose(
-                            in_channels=in_channels,
-                            out_channels=in_channels,
-                            kernel_sizes=kernel_sizes,
-                            bottleneck_channels=bottleneck_channels,
-                            activation=activation
-                            )
+            in_channels=in_channels,
+            out_channels=in_channels,
+            kernel_sizes=kernel_sizes,
+            bottleneck_channels=bottleneck_channels,
+            activation=activation
+        )
         self.inception_2 = InceptionTranspose(
-                            in_channels=in_channels,
-                            out_channels=in_channels,
-                            kernel_sizes=kernel_sizes,
-                            bottleneck_channels=bottleneck_channels,
-                            activation=activation
-                            )
+            in_channels=in_channels,
+            out_channels=in_channels,
+            kernel_sizes=kernel_sizes,
+            bottleneck_channels=bottleneck_channels,
+            activation=activation
+        )
         self.inception_3 = InceptionTranspose(
-                            in_channels=in_channels,
-                            out_channels=out_channels,
-                            kernel_sizes=kernel_sizes,
-                            bottleneck_channels=bottleneck_channels,
-                            activation=activation
-                            )	
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_sizes=kernel_sizes,
+            bottleneck_channels=bottleneck_channels,
+            activation=activation
+        )
         if self.use_residual:
             self.residual = nn.Sequential(
-                                nn.ConvTranspose1d(
-                                    in_channels=in_channels, 
-                                    out_channels=out_channels, 
-                                    kernel_size=1,
-                                    stride=1,
-                                    padding=0
-                                    ),
-                                nn.BatchNorm1d(
-                                    num_features=out_channels
-                                    )
-                                )
+                nn.ConvTranspose1d(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=1,
+                    stride=1,
+                    padding=0
+                ),
+                nn.BatchNorm1d(
+                    num_features=out_channels
+                )
+            )
 
     def forward(self, X, indices):
-        assert len(indices)==3
+        assert len(indices) == 3
         Z = self.inception_1(X, indices[2])
         Z = self.inception_2(Z, indices[1])
         Z = self.inception_3(Z, indices[0])
@@ -297,34 +299,32 @@ class InceptionTransposeBlock(nn.Module):
             Z = Z + self.residual(X)
             Z = self.activation(Z)
         return Z
-    
 
 
 class InceptionTime(ClassificationModel):
-    
-    def __init__(self, 
-                blocks: List[InceptionBlock], 
-                num_classes: int = 2,                               
-                **kwargs) -> None:
-    
+
+    def __init__(self,
+                 blocks: List[InceptionBlock],
+                 num_classes: int = 2,
+                 **kwargs) -> None:
         super().__init__(**kwargs)
-        
-        self.name="InceptionTime"
+
+        self.name = "InceptionTime"
         self.encoder = nn.Sequential(
-                    *blocks,
-                    nn.AdaptiveAvgPool1d(output_size=1))
-        
+            *blocks,
+            nn.AdaptiveAvgPool1d(output_size=1))
+
         final_dim = blocks[-1].n_filters * 4
         self.head = nn.Sequential(
             nn.LayerNorm(final_dim),
             nn.Linear(final_dim, num_classes)
         )
         self.objective = nn.CrossEntropyLoss()
-    
+
     def forward(self, inputs_embeds, label, **kwargs):
-        inputs_embeds = inputs_embeds.transpose(1,2)
+        inputs_embeds = inputs_embeds.transpose(1, 2)
         encoding = self.encoder(inputs_embeds)
         encoding = encoding.squeeze()
         preds = self.head(encoding)
-        loss = self.objective(preds,label)
+        loss = self.objective(preds, label)
         return loss, preds

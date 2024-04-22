@@ -1,206 +1,104 @@
-Homekit2020
-==============================
-Homekit2020 is the first large-scale public benchmark for wearable sensor data! Our new paper offers an unprecedented dataset with 14 million+ hours of #Fitbit data, symptom reports, & PCR influenza test results.
-[Paper](https://behavioral-data.github.io/resources/pubpdfs/merrillHomekit2020BenchmarkTime2023.pdf)
-If you find these data or code useful, please use this citation:
-```bibtex
-@article{merrillHomekit2020BenchmarkTime2023,
-  title = {Homekit2020: {{A Benchmark}} for {{Time Series Classification}} on a {{Large Mobile Sensing Dataset}} with {{Laboratory Tested Ground Truth}} of {{Influenza Infections}}},
-  author = {Merrill, Mike A and Safranchik, Esteban and Kolbeinsson, Arinbjorn and Gade, Piyusha and Ramirez, Ernesto and Schmidt, Ludwig and Foshchini, Luca and Althoff, Tim},
-  year = {2023},
-  journaltitle = {Conference on Health, Inference, and Learning},
-  shortjournal = {CHIL},
-  langid = {english},
-}
+# Self-Supervised Learning Approaches for Wearable-Based Fatigue Recognition
 
+Based on the [Homekit2020 repository](https://github.com/behavioral-data/Homekit2020). See the [original README.md](ORIGINAL_README.md) and the [original LICENSE.md](ORIGINAL_LICENSE.md).
 
+For the paper [Systematic Evaluation of Self-Supervised Learning Approaches for Wearable-Based Fatigue Recognition]() _(CHIL 2024)_ by Tamás Visy, Rita Kuznetsova, Christian Holz, Shkurta Gashi.
+
+## Setup
+
+Follow the [original README.md](ORIGINAL_README.md) for the initial setup.
+
+### Env
+
+A ".env" file should be added to repository root:
 ```
-------------
-## Getting Started
+# Environment variables go here, can be read by `python-dotenv` package:
+#
+#   `src/script.py`
+#   ----------------------------------------------------------------
+#    import dotenv
+#
+#    project_dir = os.path.join(os.path.dirname(__file__), os.pardir)
+#    dotenv_path = os.path.join(project_dir, '.env')
+#    dotenv.load_dotenv(dotenv_path)
+#   ----------------------------------------------------------------
+#
+# DO NOT ADD THIS FILE TO VERSION CONTROL!
+PROJECT_NAME=SSLA-WBFR
 
-### Installation
-1. Clone this repo: `git clone https://github.com/behavioral-data/Homekit2020.git`
-2. cd into it:  `cd Homekit2020`
-3. Build the conda environment: `make create_environment` (requires conda)
-4. Install the src package: `conda activate Homekit2020; pip install -e .`
-
-### Getting Our Data 
-Navigate to https://www.synapse.org/#!Synapse:syn22803188/wiki/609492 to begin the approval process for access to the Homekit2020 dataset. Note that once you become a registered Synapse user it may take several business days for the Homekit2020 team to process your request. 
-
-Once you have approval, follow these steps:
-1. Install the Synapse CLI by following [these instructions](https://help.synapse.org/docs/Installing-Synapse-API-Clients.1985249668.html#InstallingSynapseAPIClients-CommandLine).
-2. Download the zipped data with `synapse get syn51476306`
-3. Create the data directory `mkdir data; unzip homekit2020-1.0.zip -d data/processed`
-
-### Running your first job 
-This project was designed to be run primarily from the command line (although it _could_ be run from a notebook, e.g. by importing `src` ). You can run a simple job with:
-``` bash
-python src/models/train.py fit `# Main entry point` \
-        --config configs/tasks/HomekitPredictFluPos.yaml `# Configures the task`\
-        --config configs/models/CNNToTransformerClassifier.yaml `# Configures the model`\
-        --data.train_path  $PWD/data/processed/split/audere_split_2020_02_10/train_7_day  `# Train data location`\
-        --data.val_path $PWD/data/processed/split/audere_split_2020_02_10/eval_7_day  `# Validation data location`\
+# Weights and Biases Parameters
+WANDB_USERNAME=???
+WANDB_PROJECT=???
 ```
 
+### Patches
 
-### Adding a new model
-All models in this project should be based on [Pytorch Lightning](https://github.com/PyTorchLightning/pytorch-lightning).  This is done by subclassing `src.models.models.SensingModel` (or one of its derivatives, like `src.models.models.ClassificationModel`). All that's necessary is overriding the `forward` method, and optionally `__init__`:
+The Petastorm package might have to be updated manually to fix a bug related to [this](https://github.com/numpy/numpy/issues/9464):
 
+In `petastorm/utils.py`, around line 77
 ```python
-
-from pytorch_lightning.utilities.cli import MODEL_REGISTRY
-
-class ResNet(ClassificationModel):
-    def __init__(self,
-                 n_layers: int = 3,
-                 **kwargs) -> None:
-
-        super().__init__(**kwargs)
-        
-        self.base_model = ResNet(n_layers)
-        self.criterion = nn.CrossEntropyLoss() 
-        self.save_hyperparameters()
-    
-    def forward(self, x,labels):
-        preds = self.base_model(x)
-        loss =  self.criterion(preds,labels)
-        return loss, preds
-```
-The model can now be called from the command line (or a config):
-
-``` bash
-python src/models/train.py fit `# Main entry point` \
-        --config src/data/task_configs/PredictFluPos.yaml `# Configures the task`\
-        --model ResNet\
-        --model.n_layers 10\
-        --data.train_path $PWD/data/debug/petastorm_datasets/debug `# Train data location`\
-        --data.val_path $PWD/data/debug/petastorm_datasets/debug `# Validation data location`\
+if field.numpy_dtype == np.int32:
+    decoded_row[field_name] = np.int64(row[field_name])
+else:
+    decoded_row[field_name] = field.numpy_dtype(row[field_name])
 ```
 
+## Data
 
-### Extending a Pretrained Model 
-Since all models are built with pytorch, it's easy to extend pretrained models.  Let's say that you had a model that had been pretrained for regression, but which you wanted to use for classification. All that's needed is to structure your new model similarly to the old, and let the `state_dict` do the rest:
+To access the data using the commands utilized below, the templates like `configs/data_temporal._yaml` should be filled out in a file with the correct (".yaml") file type.
 
-```python
- 
-class MyRegressionModel(RegressionModel):
-    def __init__(self,
-                 n_layers: int = 3,
-                 n_outputs = 10,
-                 **kwargs) -> None:
+Some step values (mostly in the minute-level data) are very strong outliers, setting these to `missing` agrees more with the hour-level data.
+Set `--data.fix_step_outliers true` to do so, which uses `DefaultFixerTransformRow` to filter out values (below 0 or above 400 mean steps per minute) by setting values to 0 and missingness to 1.
 
-        super().__init__(**kwargs)
-        
-        self.encoder = SomeBigEncoder(n_layers)
-        self.head = RegressionModule(self.encoder.d_model, self.encoder.final_length, n_outputs)
-        self.criterion = nn.MSELoss() 
-        self.save_hyperparameters()
-    
-    def forward(self, x,labels):
-        x = self.encoder(x)
-        preds = self.head(x)
-        loss = self.criterion(preds,loss)
+## Train
 
-        return loss, preds
+#### Sample command
+If you follow everything in the README, the following "raw" command should work. However, to simplify setting up runs it is recommended to use configs as [described later](#train-using-configs).
 
- 
-class MyClassificationModel(ClassificationModel):
-    def __init__(self,
-                 n_layers: int = 3
-                 **kwargs) -> None:
+```commandline
+python src/models/train.py fit --config configs/tasks/HomekitPredictFluPos.yaml --config configs/models/CNNToTransformerClassifier.yaml --early_stopping_patience 2 --model.val_bootstraps 0 --data.fix_step_outliers true --data.train_path $PROJECT_ROOT$/data/processed/split_2020_02_10/train_7_day/ --data.val_path $PROJECT_ROOT$/data/processed/split_2020_02_10/eval_7_day/ --data.test_path $PROJECT_ROOT$/data/processed/split_2020_02_10/test_7_day/
+```
+where `$PROJECT_ROOT$` has to be the absolute path to project's root folder (starting with a drive, e.g., `"C:/Users/..."`, with right facing slashes so Petastorm / Parquet / etc. works).
 
-        super().__init__(**kwargs)
-        
-        # All we need to do is create a new head. Since the dimensions are different,
-        # the parameters from the pretrained model will be ignored
-        self.head = ClassificationModule(self.encoder.d_model, 
-                                         self.encoder.final_length, 2)
+While this is not mentioned in the [original README.md](ORIGINAL_README.md), you should also pass a `data.test_path`, otherwise testing could raise errors and the train could crash.
 
+Set `--model.val_bootstraps=0` [to avoid memory leak](https://github.com/behavioral-data/Homekit2020/issues/13).
+
+Added `--early_stopping_patience`, see "Appendix D. Datasheet" of the [Homekit2020] paper.
+
+Diverging from the original command is the addition of `--data.fix_step_outliers true`, which is described in [the previous section](#data).
+
+##### Self-supervised training sample command
+
+MyCNNToTransformerClassifier can be pre-trained on "unlabeled" data by using an appropriate task. The model's `task_type` should be set to an appropriate value - this can't be avoided due to the structure of the legacy code and PyTorch Lightning.
+
+```commandline
+python src/models/train.py fit --config configs/tasks/SSL-Autoencode.yaml --config configs/models/MyCNNtoTransformerClassifier.yaml --early_stopping_patience 2 --model.val_bootstraps 0 --model.task_type autoencoder --data.fix_step_outliers true --data.train_path $PROJECT_ROOT$/data/processed/split_2020_02_10/train_7_day/ --data.val_path $PROJECT_ROOT$/data/processed/split_2020_02_10/eval_7_day/ --data.test_path $PROJECT_ROOT$/data/processed/split_2020_02_10/test_7_day/
 ```
 
-### Adding a new task
-Tasks are repsonsible for setting up Dataloaders and calculating evaluation metrics. All tasks are defined in  `src/models/tasks.py`, and should subclass `ActivityTask` (which in turn ultimately subclasses `pl.LightningDataModule`). 
+An example task would be `SSL-Autoencode`, where the model's task is to find a dense but representative embedding from which the input can be reconstructed well.
+Since this task has a higher memory footprint compared to other SSL methods, it is recommended to decrease batch size to half with `--model.batch_size 400`.
 
-#### Lablers
-All tasks must have a `Labeler`, which is a callable object with the following method signature:
-```python
-def __call__(self,participant_id,start_date,end_date):
-        ... # Return the label for this window
+### Train using configs
 
+Most models can be trained using configs using the template
+```commandline
+python src/models/train.py fit -c configs/models/MyCNNtoTransformerClassifier.yaml -c configs/tasks/$TASK_NAME$.yaml -c configs/data_temporal_7_day.yaml -c configs/common.yaml [--model.pretrained_ckpt_path $PATH$]
 ```
-Some lablers (like `PredictSurveyClause`) take arguments that modify the behavior. Examples are available in `src/models/lablers.py`. 
+where task name and checkpoint path have to be set to correct values. Checkpoint path can be excluded for non-pretrained training runs (so all runs except for ones evaluating a model pretrained with an SSL method).
 
-Let's look at an example `Task` and `Labler`:
-```python
-
-class ClauseLabler(object):
-    def __init__(self, survey_respones, clause):
-        self.clause = clause
-        self.survey_responses = survey_respones
-        self.survey_responses["_date"] = self.survey_responses["timestamp"].dt.normalize()
-        self.survey_responses["_dummy"] = True
-        self.survey_lookup = self.survey_responses\
-                                 .reset_index()\
-                                 .drop_duplicates(subset=["participant_id","_date"],keep="last")\
-                                 .set_index(["participant_id","_date"])\
-                                 .query(self.clause)\
-                                 ["_dummy"]\
-                                 .to_dict()
-
-    def __call__(self,participant_id,start_date,end_date):
-        result = self.survey_lookup.get((participant_id,end_date.normalize()),False)
-        return int(result)
-
-
-class PredictSurveyClause(ActivityTask,ClassificationMixin):
-    """Predict the whether a clause in the onehot
-       encoded surveys is true for a given day. 
-       
-       For a sense of what kind of logical clauses are
-       supported, check out:
-    
-       https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html"""
-
-    def __init__(self, clause: str, 
-                       activity_level: str = "minute", 
-                       fields: List[str] = DEFAULT_FIELDS, 
-                       survey_path: Optional[str] = None,
-                       **kwargs):
-        self.clause = clause
-        self.survey_responses = load_processed_table("daily_surveys_onehot",path=survey_path).set_index("participant_id")
-        self.labler = ClauseLabler(self.survey_responses,self.clause)
-        ActivityTask.__init__(self, fields=fields, activity_level=activity_level,**kwargs)
-        ClassificationMixin.__init__(self)
-    
-    def get_labler(self):
-        return self.labler
-
-    def get_description(self):
-        return self.__doc__
-
+#### Sample commands
+##### Fatigue
+```commandline
+python src/models/train.py fit -c configs/models/MyCNNtoTransformerClassifier.yaml -c configs/tasks/Fatigue.yaml -c configs/data_temporal_7_day.yaml -c configs/common.yaml
 ```
 
-With this setup, we can train a model that predicts if an arbitrary boolean combination of survey responses is true:
-
-```bash
-python src/models/train.py fit \
-        --data PredictSurveyClause `# Tell the script which task you want to use`\
-        --data.clause 'symptom_severity__cough_q_3 > 0' `# Predict severe cough`\
-        --data.survey_path PATH_TO_ONEHOT_SURVEY_CSV\
-        --data.train_path $PWD/data/debug/petastorm_datasets/debug `# Train data location`\
-        --data.val_path $PWD/data/debug/petastorm_datasets/debug `# Validation data location`\
-        --model ResNet
-```
-###  [Optional] Weights and Biases Integration:
-
-By default this project integrates with Weights and Biases. If you would like to ignore this integration and use some other logging infrasturcture, run commands with the `--no_wandb` flag.
-
-In order to set up this integration, add the following to `.env` (and, of course, install wandb):
-```
-WANDB_USERNAME=<your username>
-WANDB_PROJECT=<the name of the WandB project you want to save results to>
+##### SSL-DailyFeatures
+```commandline
+python src/models/train.py fit -c configs/models/MyCNNtoTransformerClassifier.yaml -c configs/tasks/SSL-DailyFeatures.yaml -c configs/data_temporal_7_day.yaml -c configs/common.yaml
 ```
 
---------
-
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+##### SSL-MultiHead
+```commandline
+python src/models/train.py fit -c configs/models/MyCNNtoTransformerClassifier.yaml -c configs/tasks/SSL-MultiHead.yaml -c configs/data_temporal_7_day.yaml -c configs/common.yaml
+```

@@ -1,8 +1,9 @@
 model:
   class_path: src.models.models.ResNetClassifier
   init_args:
-    layers:
-      - 2
-      - 2
-      - 1
-      - 1
+#    layers:
+#      - 2
+#      - 2
+#      - 1
+#      - 1
+    in_channels: 8 # based on MyResNet.yaml

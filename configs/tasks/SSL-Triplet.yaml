@@ -1,0 +1,12 @@
+data:
+  class_path: src.tasks.ssl.Triplet
+  init_args:
+    normalize_numerical: False
+model:
+  init_args:
+    task_type: triplet
+    # batch_size: 400
+    combine_rows: 2
+    augmentations:
+      - class_path: src.models.augmentations.PairReorder
+    batch_norm: True

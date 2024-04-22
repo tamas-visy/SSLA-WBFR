@@ -1,0 +1,29 @@
+model:
+  init_args:
+    val_bootstraps: 0
+#    weight_decay: 1e-6
+#    batch_norm: True
+#    augmentations:
+#      - class_path: src.models.augmentations.GaussianNoise
+#        init_args:
+#          std: 0.01
+#      - class_path: src.models.augmentations.Random
+#        init_args:
+#          options:
+#            - class_path: src.models.augmentations.GaussianNoise
+#              init_args:
+#                std: 0.05
+#            - class_path: src.models.augmentations.Dropout
+#              init_args:
+#                p: 0.1  # usually around 0.3-0.5, for inputs its around 0.2
+#            - class_path: src.models.augmentations.Identity
+early_stopping_patience: 2
+trainer:
+  max_epochs: 20
+# data:
+#  init_args:
+#    fix_step_outliers: True
+#    normalize_numerical: False
+pl_seed: 2494
+# pl_seed: 2495
+# pl_seed: 2496

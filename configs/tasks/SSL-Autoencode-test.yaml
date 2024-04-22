@@ -1,0 +1,28 @@
+data:
+  class_path: src.tasks.ssl.Autoencode
+model:
+  init_args:
+    task_type: autoencoder
+    batch_size: 400
+    augmentations:
+      - class_path: src.models.augmentations.MaskedGaussianNoise
+        init_args:
+          std: 0.1
+          targets: [0, 7]
+      - class_path: src.models.augmentations.Dropout
+        init_args:
+          p: 0.1  # usually around 0.3-0.5
+      - class_path: src.models.augmentations.ExactRelatedDropout1D
+        init_args:
+          targets: [[0, 1], [2, 7], [3, 4, 5, 6]]
+    maskers:
+      - class_path: src.models.maskers.MaskColumns
+        init_args:
+          targets: [1, 2]
+      - class_path: src.models.maskers.MaskWithInput
+        init_args:
+          actions:
+            - source: 1
+              target: 0
+            - source: 2
+              target: 7

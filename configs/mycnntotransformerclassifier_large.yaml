@@ -1,0 +1,3 @@
+model:
+  init_args:
+    out_channels: [256, 128, 64]  # either set like this, directly or use null since this is default

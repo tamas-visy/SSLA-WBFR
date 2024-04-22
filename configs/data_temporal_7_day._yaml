@@ -1,0 +1,5 @@
+# Change file extension to .yaml and replace '...' with appropriate path
+data:
+  train_path: "C:/.../data/processed/split_2020_02_10/train_7_day/"
+  val_path: "C:/.../data/processed/split_2020_02_10/eval_7_day/"
+  test_path: "C:/.../data/processed/split_2020_02_10/test_7_day/"

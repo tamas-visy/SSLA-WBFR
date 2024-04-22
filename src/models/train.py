@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore")
 
 from dotenv import dotenv_values
 
-from src.models.tasks import get_task_with_name
+from src.tasks import get_task_with_name
 from src.utils import get_logger
 from src.models.loggers import HKWandBLogger as WandbLogger
 from src.data.utils import read_parquet_to_pandas
@@ -29,11 +29,12 @@ from pytorch_lightning import Trainer, LightningModule, seed_everything
 import wandb
 import pandas as pd
 from src.models.models.bases import ClassificationModel, NonNeuralMixin
+
 logger = get_logger(__name__)
 CONFIG = dotenv_values(".env")
 
 
-def add_task_args(parser,name):
+def add_task_args(parser, name):
     task = get_task_with_name(name)
     parser = task.add_task_specific_args(parser)
     return parser
@@ -53,14 +54,14 @@ def add_general_args(parent_parser):
     parent_parser.add_argument("--early_stopping_patience", type=int, default=None,
                                help="path to validation dataset")
     parent_parser.add_argument("--gradient_log_interval", default=0, type=int,
-                               help = "Interval with which to log gradients to WandB. 0 -> Never")
+                               help="Interval with which to log gradients to WandB. 0 -> Never")
     parent_parser.add_argument("--run_name", type=str, default=None,
                                help="run name to use for to WandB")
     parent_parser.add_argument("--pl_seed", type=int, default=2494,
                                help="Pytorch Lightning seed for current experiment")
 
-
     return parent_parser
+
 
 class WandBSaveConfigCallback(SaveConfigCallback):
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
@@ -77,14 +78,18 @@ class WandBSaveConfigCallback(SaveConfigCallback):
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )
         else:
-            super().setup(trainer,pl_module,stage=stage)
+            super().setup(trainer, pl_module, stage=stage)
+
 
 class CLI(LightningCLI):
     # It's probably possible to use this CLI to train other types of models
     # using custom training loops
 
+    def before_instantiate_classes(self) -> None:
+        """Implement to run some code before instantiating the classes."""
+
     def add_arguments_to_parser(self, parser):
-        parser.link_arguments("model.init_args.batch_size","data.init_args.batch_size",apply_on="parse")
+        parser.link_arguments("model.init_args.batch_size", "data.init_args.batch_size", apply_on="parse")
         parser.link_arguments("data.data_shape", "model.init_args.input_shape", apply_on="instantiate")
         # parser.link_arguments("trainer.fit_loop", "model.fit_loop", apply_on="instantiate")
 
@@ -93,7 +98,7 @@ class CLI(LightningCLI):
     def instantiate_trainer(self, **kwargs: Any) -> Trainer:
         # It's probably possible to do all of this from a config.
         # We could set a default config that contains all of this, 
-        # which vould be overridden by CLI args. For now,
+        # which would be overridden by CLI args. For now,
         # prefer to have the API work like it did in the last project,
         # where we make an educated guess about what we're intended to
         # do based on the model and task that are passed.
@@ -108,7 +113,6 @@ class CLI(LightningCLI):
         run_name = self.config["fit"]["run_name"]
 
         if self.datamodule.val_path:
-
             if self.datamodule.is_classification:
                 if checkpoint_metric is None:
                     checkpoint_metric = "val/roc_auc"
@@ -123,6 +127,9 @@ class CLI(LightningCLI):
                                                         patience=self.config["fit"]["early_stopping_patience"],
                                                         mode=mode)
                 extra_callbacks.append(early_stopping_callback)
+                print(f"Added {early_stopping_callback.__class__.__name__} "
+                      f"with patience={early_stopping_callback.patience} "
+                      f"on metric={checkpoint_metric}/{mode}")
         else:
             if checkpoint_metric is None:
                 checkpoint_metric = "train/loss"
@@ -133,15 +140,14 @@ class CLI(LightningCLI):
             filename='test_model',
             save_last=True,
             save_top_k=1,
-            save_on_train_epoch_end = True,
+            save_on_train_epoch_end=True,
             monitor=checkpoint_metric,
             every_n_epochs=1,
             mode=mode)
 
         extra_callbacks.append(self.checkpoint_callback)
 
-
-        local_rank = os.environ.get("LOCAL_RANK",0)
+        local_rank = os.environ.get("LOCAL_RANK", 0)
         if not self.config["fit"]["no_wandb"] and local_rank == 0:
             lr_monitor = LearningRateMonitor(logging_interval='step')
             extra_callbacks.append(lr_monitor)
@@ -153,15 +159,17 @@ class CLI(LightningCLI):
                                       entity=CONFIG["WANDB_USERNAME"],
                                       name=run_name,
                                       notes=self.config["fit"]["notes"],
-                                      log_model=False, #saves checkpoints to wandb as artifacts, might add overhead
+                                      log_model=False,  # saves checkpoints to wandb as artifacts, might add overhead
                                       reinit=True,
-                                      resume = 'allow',
+                                      resume='allow',
                                       # save_dir = ".",
                                       allow_val_change=True,
                                       # settings=wandb.Settings(start_method="fork"),
-                                      id = logger_id)   #id of run to resume from, None if model is not from checkpoint. Alternative: directly use id = model.logger.experiment.id, or try setting WANDB_RUN_ID env variable
+                                      id=logger_id)  # id of run to resume from, None if model is not from
+            # checkpoint. Alternative: directly use id = model.logger.experiment.id, or try setting WANDB_RUN_ID env
+            # variable
 
-            data_logger.experiment.summary["task"] = os.path.splitext(os.path.basename(str(self.config["fit"]["config"][0])))[0]
+            data_logger.experiment.summary["task"] = self.datamodule.name
             data_logger.experiment.summary["model"] = self.model.name
             data_logger.experiment.summary["pl_seed"] = pl_seed
             data_logger.experiment.summary["checkpoint_metric"] = checkpoint_metric
@@ -178,8 +186,10 @@ class CLI(LightningCLI):
         if isinstance(self.model, NonNeuralMixin):
             return NonNeuralTrainer(self.config["fit"]["no_wandb"])
 
-        extra_callbacks = extra_callbacks + [self._get(self.config_init, c) for c in self._parser(self.subcommand).callback_keys]
+        extra_callbacks = extra_callbacks + [self._get(self.config_init, c) for c in
+                                             self._parser(self.subcommand).callback_keys]
         trainer_config = {**self._get(self.config_init, "trainer"), **kwargs}
+        print(trainer_config)
         return self._instantiate_trainer(trainer_config, extra_callbacks)
 
     def before_fit(self):
@@ -220,9 +230,21 @@ class CLI(LightningCLI):
                     self.trainer._data_connector._test_dataloader_source.is_defined()
                 )
 
-                results = self.trainer.test(**fn_kwargs)[0] if has_test_loader else {}
-                if hasattr(self.model, "wandb_id"):
-                    self.model.upload_predictions_to_wandb()
+                results = {}
+                try:
+                    results = self.trainer.test(**fn_kwargs)[0] if has_test_loader else {}
+                    if hasattr(self.model, "wandb_id"):
+                        self.model.upload_predictions_to_wandb()
+                except (IndexError, AttributeError) as err:
+                    import traceback
+                    import sys
+                    traceback.print_exception(*sys.exc_info())
+                    print("Continuing")
+                except Exception as err:
+                    import traceback
+                    import sys
+                    traceback.print_exception(*sys.exc_info())
+                    print("Continuing")
 
         else:
             results = self.trainer.logged_metrics
@@ -235,57 +257,9 @@ class CLI(LightningCLI):
 
     def set_defaults(self):
         ...
-class NonNeuralTrainer(Trainer):
 
-    def __init__(self, no_wandb=False, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.no_wandb = no_wandb
 
-    def fit(self, model, datamodule, *args, **kwargs):
-        # ensures the non-neural model has a fit() function
-        assert hasattr(model, "fit")
-
-        _, _, x_train, y_train = datamodule.get_train_dataset()
-        _, _, x_val, y_val = datamodule.get_val_dataset()
-
-        model.fit(x_train, y_train, eval_set=[(x_val, y_val)]) #, callbacks=[wandb_callback()])
-
-        self.test(model, datamodule, *args, **kwargs)
-
-    def validate(self, model, datamodule, *args, **kwargs):
-        assert hasattr(model, "predict")
-
-        _, _, x, y = datamodule.get_val_dataset()
-
-        preds = model.predict_proba(x)[:, 1]
-        classification_eval(preds, y, prefix="val/", bootstrap_cis=True)
-
-    def test(self, model, datamodule, *args, **kwargs):
-        assert hasattr(model, "predict")
-
-        participant_ids, dates, x, y = datamodule.get_test_dataset()
-
-        preds = model.predict_proba(x)[:, 1]
-
-        results = classification_eval(preds, y, prefix="test/", bootstrap_cis=True)
-
-        if not self.no_wandb:
-            wandb.log(results)
-            # project = wandb.run.project
-            # checkpoint_path = os.path.join(project,wandb.run.id,"checkpoints")
-            # os.makedirs(checkpoint_path)
-
-            result_df = pd.DataFrame(zip(participant_ids, dates,  y, preds,),
-                                     columns = ["participant_id","date","label","pred"])
-            upload_pandas_df_to_wandb(wandb.run.id,"test_predictions",result_df,run=wandb.run)
-
-            # model_path = os.path.join(checkpoint_path, "best.json")
-            # model.save_model(model_path)
-            # print(f"Saving model to {model_path}")
-
-        print(results)
-
-class NonNeuralTrainer(Trainer):
+class NonNeuralTrainer(Trainer):  # Note: this had two versions included
 
     def __init__(self, no_wandb=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -311,7 +285,6 @@ class NonNeuralTrainer(Trainer):
         classification_eval(preds, y, prefix="val/", bootstrap_cis=True)
 
     def test(self, model, datamodule, *args, **kwargs):
-
         assert hasattr(model, "predict")
 
         participant_ids, dates, x, y = datamodule.get_test_dataset()
@@ -322,21 +295,31 @@ class NonNeuralTrainer(Trainer):
         if not self.no_wandb:
             wandb.log(results)
             project = wandb.run.project
-            checkpoint_path = os.path.join(project,wandb.run.id,"checkpoints")
+            checkpoint_path = os.path.join(project, wandb.run.id, "checkpoints")
             os.makedirs(checkpoint_path)
 
-            result_df = pd.DataFrame(zip(participant_ids, dates,  y, preds,),
-                                     columns = ["participant_id","date","label","pred"])
+            result_df = pd.DataFrame(zip(participant_ids, dates, y, preds, ),
+                                     columns=["participant_id", "date", "label", "pred"])
 
-            upload_pandas_df_to_wandb(wandb.run.id,"test_predictions",result_df,run=wandb.run)
+            upload_pandas_df_to_wandb(wandb.run.id, "test_predictions", result_df, run=wandb.run)
 
         print(results)
+
+
+print("Apply the patch to petastorm/utils.py if you run into issues with numpy dtypes")
+"""
+if field.numpy_dtype == np.int32:
+    decoded_row[field_name] = np.int64(row[field_name])
+else:
+    decoded_row[field_name] = field.numpy_dtype(row[field_name])
+"""  # around line 77
 
 if __name__ == "__main__":
     trainer_defaults = dict(
         accelerator="cuda",
         num_sanity_val_steps=0,
         gpus=-1,
+        max_epochs=100
     )
     if os.path.isfile("lightning_config.yaml"):
         os.remove("lightning_config.yaml")

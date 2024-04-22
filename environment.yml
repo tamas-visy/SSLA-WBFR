@@ -1,4 +1,4 @@
-name: Homekit2020
+name: SSLA-WBFR
 channels:
   - conda-forge
   - defaults
@@ -23,15 +23,15 @@ dependencies:
   - cudatoolkit=10.2
   - jupyter
   - matplotlib
-  - pytorch-lightning[extra]=1.7.0
-  - torchmetrics>=0.5
+  - pytorch-lightning[extra]=1.8.6  # ModuleNotFoundError: No module named 'pytorch_lightning.utilities.cloud_io'
+  - torchmetrics>=0.5, <0.11  # ImportError: cannot import name 'BinnedPrecisionRecallCurve' from 'torchmetrics'
   - pyspark=3.1.2
   - sktime
   - pip:
     - einops
     - torchviz==0.0.2
     - pyyaml==5.4.1
-    - wandb 
+    - wandb>=0.15
     - xgboost==1.4.2
     - tensorboard==2.6.0
     - tabulate==0.8.9

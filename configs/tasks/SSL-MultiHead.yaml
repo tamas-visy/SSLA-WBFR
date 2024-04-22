@@ -1,0 +1,27 @@
+data:
+  class_path: src.tasks.ssl.MultiHeadDailyFeatures
+model:  # this uses DailyFeatures
+  init_args:
+    task_type: multihead
+    multihead_mode: regression
+    batch_size: 400
+    num_labels: 126 # apparently, length of daily features
+    denoising: True
+
+# TODO extract as separate config
+#data:
+#  class_path: src.tasks.ssl.MultiHeadTriplet
+#model:
+#  init_args:
+#    task_type: multihead
+#    multihead_mode: contrastive
+#    batch_size: 400
+#    combine_rows: 2
+#    augmentations:
+#      - class_path: src.models.augmentations.MaskedGaussianNoise
+#        init_args:
+#          std: 0.01  # maybe too high?
+#          targets: [0, 7]
+#      - class_path: src.models.augmentations.Dropout
+#        init_args:
+#          p: 0.01  # usually around 0.3-0.5

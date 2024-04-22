@@ -1,0 +1,5 @@
+data: 
+  class_path: src.tasks.PredictSurveyClause
+  init_args:
+    clause:  "symptom_severity__cough_q_3 > 0 | symptom_severity__cough_q_2 > 0"
+    readable_name: "Cough"

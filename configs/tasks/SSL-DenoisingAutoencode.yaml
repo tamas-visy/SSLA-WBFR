@@ -1,0 +1,7 @@
+data:
+  class_path: src.tasks.ssl.Autoencode
+model:
+  init_args:
+    task_type: autoencoder
+    batch_size: 400
+    denoising: True  # don't forget to actually add noise

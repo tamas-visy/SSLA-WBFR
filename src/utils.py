@@ -16,7 +16,9 @@ import subprocess
 from scipy.special import softmax
 
 from dotenv import dotenv_values
+
 config = dotenv_values(".env")
+
 
 def validate_yaml_or_json(ctx, param, value):
     if value is None:
@@ -29,18 +31,22 @@ def validate_yaml_or_json(ctx, param, value):
         except json.decoder.JSONDecodeError:
             raise click.BadParameter('dataset_args needs to be either a json string or a path to a config .yaml')
 
+
 def load_dotenv():
     project_dir = os.path.join(os.path.dirname(__file__), os.pardir)
     dotenv_path = os.path.join(project_dir, '.env')
     dotenv.load_dotenv(dotenv_path)
 
+
 def read_yaml(path):
     with open(path, 'r') as stream:
         return yaml.safe_load(stream)
 
-def write_yaml(data,path):
+
+def write_yaml(data, path):
     with open(path, 'w') as stream:
         yaml.dump(data, stream)
+
 
 def clean_datum_for_serialization(datum):
     for k, v in datum.items():
@@ -48,18 +54,21 @@ def clean_datum_for_serialization(datum):
             datum[k] = v.tolist()
     return datum
 
+
 def write_jsonl(open_file, data, mode="a"):
     for datum in data:
         clean_datum = clean_datum_for_serialization(datum)
         open_file.write(json.dumps(clean_datum))
         open_file.write("\n")
 
-def read_jsonl(path,line=None):
+
+def read_jsonl(path, line=None):
     data = []
     with open(path) as f:
         for line in f:
             data.append(json.loads(line))
     return data
+
 
 def get_logger(name):
     logger = logging.getLogger(name)
@@ -70,6 +79,7 @@ def get_logger(name):
     )
     return logger
 
+
 def check_for_wandb_run():
     try:
         import wandb
@@ -77,15 +87,17 @@ def check_for_wandb_run():
         return None
     return wandb.run
 
-def render_network_plot(var,dir,filename="model",params=None):
-    graph = make_dot(var,params=params)
+
+def render_network_plot(var, dir, filename="model", params=None):
+    graph = make_dot(var, params=params)
     graph.format = "png"
-    return graph.render(filename=filename,directory=dir)
+    return graph.render(filename=filename, directory=dir)
 
 
 def get_unused_gpus():
-    result=subprocess.getoutput("nvidia-smi -q -d PIDS |grep -A4 GPU | grep Processes").split("\n")
+    result = subprocess.getoutput("nvidia-smi -q -d PIDS |grep -A4 GPU | grep Processes").split("\n")
     return [str(i) for i in range(len(result)) if "None" in result[i]]
+
 
 def set_gpus_automatically(n):
     free_devices = get_unused_gpus()
@@ -99,17 +111,18 @@ def set_gpus_automatically(n):
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(devices)
 
 
-def visualize_model(model,dir="."):
+def visualize_model(model, dir="."):
     """
     Returns the path to an image of a model
     """
     x_dummy = torch.rand(model.input_dim).unsqueeze(0)
     y_dummy = torch.tensor(1).unsqueeze(0)
-    pred_dummy = model(inputs_embeds=x_dummy, labels = y_dummy)[0]
+    pred_dummy = model(inputs_embeds=x_dummy, labels=y_dummy)[0]
 
     params = dict(model.named_parameters())
-    model_img_path = render_network_plot(pred_dummy,dir,params=params)
+    model_img_path = render_network_plot(pred_dummy, dir, params=params)
     return model_img_path
+
 
 def describe_resident_tensors():
     tensors = []
@@ -122,22 +135,23 @@ def describe_resident_tensors():
     return tensors
 
 
-def update_wandb_run(run_id,vals):
+def update_wandb_run(run_id, vals):
     project = config["WANDB_PROJECT"]
     entity = config["WANDB_USERNAME"]
     api = wandb.Api()
     run_url = f"{entity}/{project}/{run_id}"
     run = api.run(run_url)
-    for k,v in vals.items():
-        update_run(run,k,v)
+    for k, v in vals.items():
+        update_run(run, k, v)
     run.summary.update()
-    return  f"https://wandb.ai/{entity}/{project}/runs/{run_id}"
+    return f"https://wandb.ai/{entity}/{project}/runs/{run_id}"
 
 
 def update_run(run, k, v):
     if (isinstance(run.summary, wandb.old.summary.Summary) and k not in run.summary):
         run.summary._root_set(run.summary._path, [(k, {})])
     run.summary[k] = v
+
 
 def get_wandb_summaries(runids, project=None, entity=None):
     results = []
@@ -153,7 +167,7 @@ def get_wandb_summaries(runids, project=None, entity=None):
         summary = run.summary._json_dict
 
         meta = json.load(run.file("wandb-metadata.json").download(replace=True))
-        summary["command"] = " ".join(["python", meta["program"]] +  meta["args"])
+        summary["command"] = " ".join(["python", meta["program"]] + meta["args"])
 
         summary["id"] = run_id
         results.append(summary)
@@ -161,26 +175,27 @@ def get_wandb_summaries(runids, project=None, entity=None):
     return results
 
 
-def upload_pandas_df_to_wandb(run_id,table_name,df,run=None):
-
+def upload_pandas_df_to_wandb(run_id, table_name, df, run=None):
     model_table = wandb.Table(dataframe=df)
     if run:
-        run.log({table_name:model_table})
+        run.log({table_name: model_table})
     else:
         with get_historical_run(run_id) as run:
-            run.log({table_name:model_table})
+            run.log({table_name: model_table})
+
 
 def get_historical_run(run_id: str):
     """Allows restoring an historical run to a writable state
     """
-    return wandb.init(id=run_id, resume='allow', settings=wandb.Settings(start_method='fork'))
+    return wandb.init(id=run_id, resume='allow', settings=wandb.Settings())  # Settings(start_method='fork')
 
 
-def binary_logits_to_pos_probs(arr,pos_index=-1):
-    probs = softmax(arr,axis=1)
-    return probs[:,pos_index]
+def binary_logits_to_pos_probs(arr, pos_index=-1):
+    probs = softmax(arr, axis=1)
+    return probs[:, pos_index]
 
-def download_table(run_id, table_name,v="latest"):
+
+def download_table(run_id, table_name, v="latest"):
     api = wandb.Api()
     entity = config["WANDB_USERNAME"]
     project = config["WANDB_PROJECT"]
@@ -189,16 +204,17 @@ def download_table(run_id, table_name,v="latest"):
     print(table)
     return pd.DataFrame(table.data, columns=table.columns)
 
-def argparse_to_groups(args,parser):
+
+def argparse_to_groups(args, parser):
     """
     Takes argparse args and a parser and returns results seperated by groups.
     Taken from:
     https://stackoverflow.com/questions/38884513/python-argparse-how-can-i-get-namespace-objects-for-argument-groups-separately
     """
-    arg_groups={}
+    arg_groups = {}
 
     for group in parser._action_groups:
-        group_dict={a.dest:getattr(args,a.dest,None) for a in group._group_actions}
-        arg_groups[group.title]=argparse.Namespace(**group_dict)
+        group_dict = {a.dest: getattr(args, a.dest, None) for a in group._group_actions}
+        arg_groups[group.title] = argparse.Namespace(**group_dict)
 
     return arg_groups

@@ -1,0 +1,9 @@
+data:
+  class_path: src.tasks.PredictDailyFeatures
+  init_args:
+    activity_level: "minute"
+    window_size: 7
+model:
+  init_args:
+    task_type: regression
+    num_labels: 126 # apparently, length of daily features

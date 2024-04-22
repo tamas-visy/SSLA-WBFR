@@ -1,5 +1,5 @@
 import torch
-import torch.nn as  nn
+import torch.nn as nn
 import torch.nn.functional as F
 from src.models.models.bases import ClassificationModel
 
@@ -7,11 +7,13 @@ from src.models.models.bases import ClassificationModel
 Taken from: https://github.com/okrasolar/pytorch-timeseries
 """
 
+
 class Conv1dSamePadding(nn.Conv1d):
     """Represents the "Same" padding functionality from Tensorflow.
     See: https://github.com/pytorch/pytorch/issues/3867
     Note that the padding argument in the initializer doesn't do anything now
     """
+
     def forward(self, input):
         return conv1d_same_padding(input, self.weight, self.bias, self.stride,
                                    self.dilation, self.groups)
@@ -48,8 +50,6 @@ class ConvBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # type: ignore
 
         return self.layers(x)
-    
-
 
 
 class ResNetBlock(nn.Module):
@@ -79,15 +79,16 @@ class ResNetBlock(nn.Module):
         if self.match_channels:
             return self.layers(x) + self.residual(x)
         return self.layers(x)
-    
-class ResNetBaseline(ClassificationModel):
+
+
+class ResNetClassifier(ClassificationModel):
     """A PyTorch implementation of the ResNet Baseline
     """
 
     def __init__(self, in_channels: int, mid_channels: int = 64,
                  num_pred_classes: int = 2, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.name="ResNet"
+        self.name = "ResNetClassifier"
         # for easier saving and loading
         self.input_args = {
             'in_channels': in_channels,
@@ -101,13 +102,11 @@ class ResNetBaseline(ClassificationModel):
 
         ])
         self.final = nn.Linear(mid_channels * 2, num_pred_classes)
-        self.criteron = nn.CrossEntropyLoss()
+        self.criterion = nn.CrossEntropyLoss()
 
     def forward(self, inputs_embeds: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:  # type: ignore
-        x = inputs_embeds.transpose(1,2)
+        x = inputs_embeds.transpose(1, 2)
         x = self.layers(x)
         preds = self.final(x.mean(dim=-1))
-        loss = self.criteron(preds, labels)
+        loss = self.criterion(preds, labels)
         return loss, preds
-
-

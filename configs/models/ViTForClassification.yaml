@@ -36,7 +36,7 @@ trainer:
   sync_batchnorm: false
   precision: 32
   enable_model_summary: true
-  weights_save_path: null
+#  weights_save_path: null
   num_sanity_val_steps: 0
   resume_from_checkpoint: null
   profiler: null

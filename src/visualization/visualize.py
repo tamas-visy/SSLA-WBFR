@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 
 import numpy as np
-import matplotlib 
+import matplotlib
 
 import operator
 import math
@@ -19,43 +19,44 @@ import networkx
 
 from src.data.utils import download_wandb_table
 
-def plot_roc_curve(run_id,table_name="roc_table",plt_kwargs={},
-                 entity="mikeamerrill", project="flu"):
-    data = download_wandb_table(run_id,table_name=table_name,
+
+def plot_roc_curve(run_id, table_name="roc_table", plt_kwargs={},
+                   entity="mikeamerrill", project="flu"):
+    data = download_wandb_table(run_id, table_name=table_name,
                                 entity=entity, project=project)
-    plt.plot(data["fpr"],data["tpr"],**plt_kwargs)
-    plt.plot([0,1],[0,1], linestyle = "--", color="grey")
+    plt.plot(data["fpr"], data["tpr"], **plt_kwargs)
+    plt.plot([0, 1], [0, 1], linestyle="--", color="grey")
     plt.legend()
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.gca().set_aspect("equal")
 
 
-def bars_with_labels_and_errors(x,y,ci,palette = "GnBu_d", ax = None,
-                                color=None, label=None,data=None):
-    sns.barplot(data = data, y = y, x = x, ci="error_size",
-               palette = palette, ax=ax)
+def bars_with_labels_and_errors(x, y, ci, palette="GnBu_d", ax=None,
+                                color=None, label=None, data=None):
+    sns.barplot(data=data, y=y, x=x, ci="error_size",
+                palette=palette, ax=ax)
 
     plt.ylabel(None)
-#     plt.xlabel("")
-    plt.xlim(0,0.9) 
+    #     plt.xlabel("")
+    plt.xlim(0, 0.9)
     plt.gca().yaxis.set_major_formatter(mtick.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
 
     # set individual bar lables using above list
-    for i,patch in enumerate(plt.gca().patches):
+    for i, patch in enumerate(plt.gca().patches):
         # get_width pulls left or right; get_y pushes up or down
-        
+
         bar_end_y = patch.get_height()
-        bar_middle_x = patch.get_x() + patch.get_width() /2
+        bar_middle_x = patch.get_x() + patch.get_width() / 2
         print(data)
-        print("i",i)
+        print("i", i)
         accuracy = data.iloc[i][x]
         # plt.gca().text(bar_end_x + 0.05, bar_middle_y, \
         #         str(round((accuracy)*100, 2))+'%',
         #         verticalalignment='center')
 
         error_size = data.iloc[i][ci]
-        plt.gca().errorbar(xerr = error_size, y = bar_end_y, x = bar_middle_x, c= "black")
+        plt.gca().errorbar(xerr=error_size, y=bar_end_y, x=bar_middle_x, c="black")
 
 
 def latexify(fig_width=None, fig_height=None, columns=1):
@@ -73,39 +74,38 @@ def latexify(fig_width=None, fig_height=None, columns=1):
     # Width and max height in inches for IEEE journals taken from
     # computer.org/cms/Computer.org/Journal%20templates/transactions_art_guide.pdf
 
-    assert(columns in [1,2])
+    assert (columns in [1, 2])
 
     if fig_width is None:
-        fig_width = 3.39 if columns==1 else 6.9 # width in inches
+        fig_width = 3.39 if columns == 1 else 6.9  # width in inches
 
     if fig_height is None:
-        golden_mean = (np.sqrt(5)-1.0)/2.0    # Aesthetic ratio
-        fig_height = fig_width*golden_mean # height in inches
+        golden_mean = (np.sqrt(5) - 1.0) / 2.0  # Aesthetic ratio
+        fig_height = fig_width * golden_mean  # height in inches
 
     MAX_HEIGHT_INCHES = 8.0
     if fig_height > MAX_HEIGHT_INCHES:
-        print("WARNING: fig_height too large:" + fig_height + 
+        print("WARNING: fig_height too large:" + fig_height +
               "so will reduce to" + MAX_HEIGHT_INCHES + "inches.")
         fig_height = MAX_HEIGHT_INCHES
 
     params = {'backend': 'ps',
               'text.latex.preamble': [r'\usepackage{gensymb}'],
-              'axes.labelsize': 8, # fontsize for x and y labels (was 10)
+              'axes.labelsize': 8,  # fontsize for x and y labels (was 10)
               'axes.titlesize': 8,
-              'font.size': 8, # was 10
-              'legend.fontsize': 8, # was 10
+              'font.size': 8,  # was 10
+              'legend.fontsize': 8,  # was 10
               'xtick.labelsize': 8,
               'ytick.labelsize': 8,
-            #   'text.usetex': False,
-              'figure.figsize': [fig_width,fig_height],
+              #   'text.usetex': False,
+              'figure.figsize': [fig_width, fig_height],
               'font.family': 'serif'
-    }
+              }
 
     matplotlib.rcParams.update(params)
 
 
 def format_axes(ax):
-
     for spine in ['top', 'right']:
         ax.spines[spine].set_visible(False)
 
@@ -122,8 +122,6 @@ def format_axes(ax):
     return ax
 
 
-
-   
 # Author: Hassan Ismail Fawaz <hassan.ismail-fawaz@uha.fr>
 #         Germain Forestier <germain.forestier@uha.fr>
 #         Jonathan Weber <jonathan.weber@uha.fr>
@@ -391,17 +389,17 @@ def draw_cd_diagram(df_perf=None, alpha=0.05, title=None, labels=False):
     for p in p_values:
         print(p)
 
-
     graph_ranks(average_ranks.values, average_ranks.keys(), p_values,
                 cd=None, reverse=True, width=6, textspace=2.5, labels=labels)
 
     font = {
-        'color':  'black',
+        'color': 'black',
         'weight': 'normal',
         'size': 18,
-        }
+    }
     if title:
-        plt.title(title,fontdict=font, y=0.9, x=0.5)
+        plt.title(title, fontdict=font, y=0.9, x=0.5)
+
 
 def wilcoxon_holm(alpha=0.05, df_perf=None):
     """
