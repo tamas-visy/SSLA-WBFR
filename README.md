@@ -2,7 +2,7 @@
 
 Based on the [Homekit2020 repository](https://github.com/behavioral-data/Homekit2020). See the [original README.md](ORIGINAL_README.md) and the [original LICENSE.md](ORIGINAL_LICENSE.md).
 
-For the paper [Systematic Evaluation of Self-Supervised Learning Approaches for Wearable-Based Fatigue Recognition]() _(CHIL 2024)_ by Tamás Visy, Rita Kuznetsova, Christian Holz, Shkurta Gashi.
+For the paper [Systematic Evaluation of Self-Supervised Learning Approaches for Wearable-Based Fatigue Recognition](https://raw.githubusercontent.com/mlresearch/v248/main/assets/visy24a/visy24a.pdf) _(CHIL 2024)_ by Tamás Visy, Rita Kuznetsova, Christian Holz, Shkurta Gashi.
 
 ## Setup
 
